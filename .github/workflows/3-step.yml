@@ -41,11 +41,18 @@ jobs:
 
       - name: Find last comment
         id: find-last-comment
-        uses: peter-evans/find-comment@v3
+        uses: actions/github-script@v7
         with:
-          repository: ${{ env.ISSUE_REPOSITORY }}
-          issue-number: ${{ env.ISSUE_NUMBER }}
-          direction: last
+          retries: 3
+          script: |
+            const [owner, repo] = process.env.ISSUE_REPOSITORY.split('/');
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: Number(process.env.ISSUE_NUMBER),
+            });
+            const lastComment = comments[comments.length - 1];
+            core.setOutput('comment-id', lastComment ? String(lastComment.id) : '');
 
       - name: Update comment - checking work
         uses: GrantBirki/comment@v2.1.1
